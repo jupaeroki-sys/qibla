@@ -1,337 +1,270 @@
-"use strict";
+const KAABA_LAT = 21.422487;
+const KAABA_LNG = 39.826206;
 
-const KAABA = {
-  lat: 21.422487,
-  lng: 39.826206
-};
-
-let qiblaBearing = null;
-let heading = null;
-let listening = false;
-
-const locateBtn = document.getElementById("locate");
-const compassBtn = document.getElementById("compassBtn");
+const locateButton = document.getElementById("locate");
+const statusText = document.getElementById("status");
 const result = document.getElementById("result");
-const status = document.getElementById("status");
 const place = document.getElementById("place");
 const needle = document.getElementById("needle");
 const degrees = document.getElementById("degrees");
 const bearingLabel = document.getElementById("bearing-label");
-const distance = document.getElementById("distance");
-const compassNote = document.getElementById("compassNote");
-const navigationTitle = document.getElementById("navigationTitle");
+const distanceText = document.getElementById("distance");
+const compassState = document.getElementById("compassState");
 
-function toRad(value){
+let qiblaBearing = null;
+let heading = null;
+let compassStarted = false;
+
+function toRadians(value) {
   return value * Math.PI / 180;
 }
 
-function toDeg(value){
+function toDegrees(value) {
   return value * 180 / Math.PI;
 }
 
-/* Accurate great-circle bearing to the Kaaba */
-function calculateQibla(lat,lng){
+function normalize(value) {
+  return (value + 360) % 360;
+}
 
-  const phi1 = toRad(lat);
-  const phi2 = toRad(KAABA.lat);
-  const deltaLambda = toRad(KAABA.lng - lng);
+function calculateQibla(lat, lng) {
+  const lat1 = toRadians(lat);
+  const lat2 = toRadians(KAABA_LAT);
+  const deltaLng = toRadians(KAABA_LNG - lng);
 
-  const y = Math.sin(deltaLambda);
+  const y = Math.sin(deltaLng);
 
   const x =
-    Math.cos(phi1) * Math.tan(phi2) -
-    Math.sin(phi1) * Math.cos(deltaLambda);
+    Math.cos(lat1) * Math.tan(lat2) -
+    Math.sin(lat1) * Math.cos(deltaLng);
 
-  return (toDeg(Math.atan2(y,x)) + 360) % 360;
+  return normalize(toDegrees(Math.atan2(y, x)));
 }
 
-/* Distance to Kaaba */
-function distanceKm(lat1,lng1,lat2,lng2){
+function distanceKm(lat1, lng1) {
+  const R = 6371;
 
-  const rad = Math.PI / 180;
-
-  const dLat = (lat2-lat1) * rad;
-  const dLng = (lng2-lng1) * rad;
+  const dLat = toRadians(KAABA_LAT - lat1);
+  const dLng = toRadians(KAABA_LNG - lng1);
 
   const a =
-    Math.sin(dLat/2) ** 2 +
-    Math.cos(lat1*rad) *
-    Math.cos(lat2*rad) *
-    Math.sin(dLng/2) ** 2;
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRadians(lat1)) *
+    Math.cos(toRadians(KAABA_LAT)) *
+    Math.sin(dLng / 2) ** 2;
 
-  return 6371 *
-    2 *
-    Math.atan2(
-      Math.sqrt(a),
-      Math.sqrt(1-a)
-    );
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-/* Show calculated Qibla */
-function showLocation(lat,lng){
+function showBearing() {
+  if (qiblaBearing === null) return;
 
-  qiblaBearing =
-    calculateQibla(lat,lng);
+  degrees.textContent = `${Math.round(qiblaBearing)}°`;
 
-  const km =
-    distanceKm(
-      lat,
-      lng,
-      KAABA.lat,
-      KAABA.lng
-    );
+  if (heading === null) {
+    needle.style.transform =
+      `rotate(${qiblaBearing}deg)`;
 
-  result.hidden = false;
+    bearingLabel.textContent = "from true north";
 
-  degrees.textContent =
-    Math.round(qiblaBearing) + "°";
+    compassState.textContent =
+      "Compass unavailable — use the bearing shown above.";
 
-  distance.textContent =
-    "Distance to the Kaaba: " +
-    Math.round(km).toLocaleString() +
-    " km.";
+    return;
+  }
 
-  place.textContent =
-    "📍 Your current location";
-
-  status.textContent =
-    "Location found. Your Qibla direction is ready.";
-
-  navigationTitle.textContent =
-    "Start Navigating";
-
-  updateNeedle();
-}
-
-/* Rotate Kaaba toward Qibla */
-function updateNeedle(){
-
-  if(qiblaBearing === null) return;
-
-  const rotation =
-    heading === null
-      ? qiblaBearing
-      : qiblaBearing - heading;
+  const rotation = qiblaBearing - heading;
 
   needle.style.transform =
-    "rotate(" + rotation + "deg)";
+    `rotate(${rotation}deg)`;
 
-  degrees.textContent =
-    Math.round(qiblaBearing) + "°";
+  bearingLabel.textContent = "to the Qibla";
 
-  if(heading === null){
+  compassState.textContent =
+    "● Qibla navigation active";
+}
 
-    bearingLabel.textContent =
-      "from true north";
+function orientationHandler(event) {
 
-  }else{
+  let newHeading = null;
 
-    bearingLabel.textContent =
-      "to the Qibla";
+  /*
+   * iPhone / iPad Safari
+   */
+  if (
+    typeof event.webkitCompassHeading === "number" &&
+    event.webkitCompassHeading >= 0
+  ) {
+    newHeading = event.webkitCompassHeading;
+  }
 
+  /*
+   * Android / other browsers
+   */
+  else if (
+    event.absolute === true &&
+    event.alpha !== null
+  ) {
+    newHeading = normalize(360 - event.alpha);
+  }
+
+  if (newHeading === null) return;
+
+  heading = newHeading;
+
+  showBearing();
+}
+
+function startCompass() {
+
+  if (compassStarted) return;
+
+  compassStarted = true;
+
+  window.addEventListener(
+    "deviceorientationabsolute",
+    orientationHandler,
+    true
+  );
+
+  window.addEventListener(
+    "deviceorientation",
+    orientationHandler,
+    true
+  );
+
+  compassState.textContent = "● Calibrating compass…";
+
+  setTimeout(() => {
+    if (heading !== null) {
+      compassState.textContent =
+        "● Qibla navigation active";
+    }
+  }, 1500);
+}
+
+async function requestCompass() {
+
+  try {
+
+    /*
+     * iOS requires explicit permission.
+     * This function is called directly from
+     * the user's location button.
+     */
+    if (
+      typeof DeviceOrientationEvent !== "undefined" &&
+      typeof DeviceOrientationEvent.requestPermission === "function"
+    ) {
+
+      const permission =
+        await DeviceOrientationEvent.requestPermission();
+
+      if (permission !== "granted") {
+
+        compassState.textContent =
+          "Compass permission was not granted.";
+
+        showBearing();
+
+        return;
+      }
+    }
+
+    startCompass();
+
+  } catch (error) {
+
+    console.log("Compass permission error:", error);
+
+    showBearing();
   }
 }
 
-/* Location */
-function locate(){
+function getLocation() {
 
-  if(!navigator.geolocation){
+  if (!navigator.geolocation) {
 
-    status.textContent =
+    statusText.textContent =
       "Location is not available on this device.";
 
     return;
   }
 
-  locateBtn.disabled = true;
+  locateButton.disabled = true;
 
-  locateBtn.textContent =
-    "⌖ Locating…";
+  locateButton.textContent =
+    "◎ Locating…";
 
-  status.textContent =
-    "Please allow location access…";
+  statusText.textContent =
+    "Finding your position and starting Qibla navigation…";
 
   navigator.geolocation.getCurrentPosition(
 
-    function(position){
+    async position => {
 
-      const lat =
-        position.coords.latitude;
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
 
-      const lng =
-        position.coords.longitude;
+      qiblaBearing = calculateQibla(lat, lng);
 
-      showLocation(lat,lng);
+      const distance = distanceKm(lat, lng);
 
-      locateBtn.disabled = false;
+      result.hidden = false;
 
-      locateBtn.textContent =
-        "⌖ Use my location";
+      place.textContent =
+        "Your current location";
+
+      distanceText.textContent =
+        `Distance to the Kaaba: ${Math.round(distance).toLocaleString()} km`;
+
+      statusText.textContent =
+        "Location found. Starting navigation…";
+
+      locateButton.textContent =
+        "✓ Qibla navigation active";
+
+      showBearing();
+
+      /*
+       * IMPORTANT:
+       * Compass permission is requested immediately
+       * from the same user action.
+       */
+      await requestCompass();
 
     },
 
-    function(error){
+    error => {
 
-      locateBtn.disabled = false;
+      console.log(error);
 
-      locateBtn.textContent =
-        "⌖ Use my location";
+      locateButton.disabled = false;
 
-      if(error.code === 1){
+      locateButton.textContent =
+        "◎ Use my location";
 
-        status.textContent =
-          "Location permission was denied. Please allow location access.";
+      if (error.code === 1) {
 
-      }else{
+        statusText.textContent =
+          "Please allow location access to find your Qibla.";
 
-        status.textContent =
+      } else {
+
+        statusText.textContent =
           "Could not get your location. Please try again.";
-
       }
-
     },
 
     {
-      enableHighAccuracy:true,
-      timeout:15000,
-      maximumAge:0
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0
     }
-
   );
 }
 
-/* Device compass */
-function onOrientation(event){
-
-  let value = null;
-
-  /* iPhone / iPad */
-  if(
-    typeof event.webkitCompassHeading === "number" &&
-    Number.isFinite(event.webkitCompassHeading)
-  ){
-
-    value =
-      event.webkitCompassHeading;
-
-  }
-
-  /* Android / other browsers */
-  else if(
-    event.absolute &&
-    event.alpha !== null
-  ){
-
-    value =
-      (360 - event.alpha) % 360;
-
-  }
-
-  if(value !== null){
-
-    heading = value;
-
-    updateNeedle();
-
-  }
-}
-
-/* Enable live compass */
-async function enableCompass(){
-
-  try{
-
-    const DeviceOrientation =
-      window.DeviceOrientationEvent;
-
-    /* iOS permission */
-    if(
-      DeviceOrientation &&
-      typeof DeviceOrientation.requestPermission === "function"
-    ){
-
-      const permission =
-        await DeviceOrientation.requestPermission();
-
-      if(permission !== "granted"){
-
-        compassNote.textContent =
-          "Compass permission was not granted.";
-
-        return;
-
-      }
-
-    }
-
-    if(!listening){
-
-      window.addEventListener(
-        "deviceorientationabsolute",
-        onOrientation,
-        true
-      );
-
-      window.addEventListener(
-        "deviceorientation",
-        onOrientation,
-        true
-      );
-
-      listening = true;
-
-    }
-
-    /* UI changes after activation */
-
-    compassBtn.textContent =
-      "◎ See the Direction";
-
-    compassBtn.classList.add("active");
-
-    navigationTitle.textContent =
-      "See the Direction";
-
-    compassNote.textContent =
-      "The needle is live — turn your phone to follow the Qibla.";
-
-    updateNeedle();
-
-  }catch(error){
-
-    console.error(error);
-
-    compassNote.textContent =
-      "This device does not provide a usable compass sensor.";
-
-  }
-}
-
-locateBtn.addEventListener(
+locateButton.addEventListener(
   "click",
-  locate
-);
-
-compassBtn.addEventListener(
-  "click",
-  enableCompass
-);
-
-window.addEventListener(
-  "pagehide",
-  function(){
-
-    window.removeEventListener(
-      "deviceorientationabsolute",
-      onOrientation,
-      true
-    );
-
-    window.removeEventListener(
-      "deviceorientation",
-      onOrientation,
-      true
-    );
-
-  }
+  getLocation
 );

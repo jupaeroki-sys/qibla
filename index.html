@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#06130f">
-<title>Qibla Finder — Direction to the Kaaba</title>
-<meta name="description" content="Simple and accurate Qibla direction finder using your device location and compass.">
+<title>Qibla Finder</title>
+<meta name="description" content="Find the accurate Qibla direction from your location.">
 <link rel="stylesheet" href="style.css">
 </head>
 
@@ -13,47 +13,33 @@
 
 <header>
   <a class="brand" href="./">✦ Qibla<span>Finder</span></a>
-  <a href="#privacy">Privacy</a>
+  <span class="nav">Qibla Direction</span>
 </header>
 
 <main>
 
 <section class="hero">
-  <small>THE DIRECTION OF KAABA</small>
+  <small>THE DIRECTION OF PRAYER</small>
   <h1>Find your <i>Qibla.</i></h1>
-  <p>
-    Allow your location, calibrate your compass,
-    and follow the direction to the Kaaba in Makkah.
-  </p>
+  <p>Allow your location and let your phone guide you toward the Kaaba.</p>
 </section>
 
 <section class="card">
 
-  <!-- LOCATION -->
-  <div class="location-box" id="locationBox">
-    <p class="location-message">
-      Please enable location to get accurate direction.
-    </p>
+  <div class="start-label">START NAVIGATING</div>
 
-    <button id="locate" class="location-button">
-      ⌖ Use my location
-    </button>
+  <button id="locate" class="main-button">
+    ◎ Use my location
+  </button>
 
-    <p id="status" class="muted">
-      Location is required to calculate the Qibla.
-    </p>
-  </div>
+  <p id="status" class="status">
+    Tap once to locate you and start Qibla navigation.
+  </p>
 
-  <!-- RESULT -->
   <div id="result" hidden>
 
-    <p id="navigationTitle" class="navigation-title">
-      Start Navigating
-    </p>
+    <div id="place" class="place"></div>
 
-    <div id="place" class="muted"></div>
-
-    <!-- COMPASS -->
     <div class="compass">
 
       <div class="ring"></div>
@@ -64,132 +50,71 @@
       <b class="w">W</b>
 
       <div id="needle" class="needle">
-
-        <!-- Kaaba SVG -->
-        <span class="kaaba-marker" aria-label="Kaaba">
-
-          <svg viewBox="0 0 64 64" aria-hidden="true">
-
-            <path d="M14 20 32 11l18 9v24L32 55 14 44Z"/>
-            <path d="M14 20l18 9 18-9"/>
-            <path d="M14 44l18 11 18-11"/>
-            <path d="M32 29v26"/>
-            <path d="M20 23v24"/>
-            <path d="M44 23v24"/>
-
-            <!-- Kaaba door -->
-            <path
-              d="M27 31h10v12H27z"
-              fill="currentColor"
-              stroke="none"
-            />
-
-          </svg>
-
-        </span>
-
+        <div class="kaaba">KAABA</div>
       </div>
 
       <strong class="star">✦</strong>
 
     </div>
 
-    <div class="degree" id="degrees">0°</div>
-
-    <div id="bearing-label" class="muted">
-      from true north
-    </div>
-
+    <div id="degrees" class="degree">0°</div>
+    <div id="bearing-label" class="muted">from true north</div>
     <p id="distance" class="muted"></p>
 
-    <!-- COMPASS BUTTON -->
-    <button id="compassBtn" class="secondary">
-      ◎ Use my compass
-    </button>
-
-    <p id="compassNote" class="muted">
-      Start Navigating — enable the compass to follow the Qibla.
-    </p>
+    <div id="compassState" class="compass-state">
+      Waiting for compass…
+    </div>
 
   </div>
 
 </section>
 
-
-<!-- GUIDE -->
-
-<section id="guide" class="section">
-
-  <small>STEP BY STEP</small>
-
-  <h2>How to find the Qibla</h2>
+<section id="guide">
+  <small>QIBLA GUIDE</small>
+  <h2>Follow the direction</h2>
 
   <div class="grid">
 
     <article>
       <b>01</b>
       <h3>Allow location</h3>
-      <p>
-        Tap Use my location so the Qibla can be calculated
-        from your exact position.
-      </p>
+      <p>Your position is used to calculate the exact direction to the Kaaba.</p>
     </article>
 
     <article>
       <b>02</b>
-      <h3>Start navigating</h3>
-      <p>
-        Tap Use my compass and allow motion access
-        when your device asks.
-      </p>
+      <h3>Hold your phone</h3>
+      <p>Keep your phone flat and away from magnets, metal and electronic interference.</p>
     </article>
 
     <article>
       <b>03</b>
       <h3>Calibrate</h3>
-      <p>
-        Move your phone gently in a figure-eight
-        away from magnets, metal and electronics.
-      </p>
+      <p>If needed, gently move your phone in a figure-eight motion.</p>
     </article>
 
     <article>
       <b>04</b>
-      <h3>See the direction</h3>
-      <p>
-        Turn slowly. The Kaaba marker follows the
-        Qibla direction as your phone moves.
-      </p>
+      <h3>Follow the Kaaba</h3>
+      <p>Rotate until the Kaaba marker points toward the Qibla.</p>
     </article>
 
   </div>
-
 </section>
 
-
-<!-- PRIVACY -->
-
-<section id="privacy" class="section privacy">
-
+<section class="privacy">
   <small>PRIVACY</small>
-
-  <h2>Privacy Policy</h2>
-
+  <h2>Private by design</h2>
   <p>
-    Your location is used to calculate the Qibla direction.
-    The calculation happens in your browser.
+    Your GPS coordinates are used in your browser to calculate the Qibla.
+    They are not stored by this page.
   </p>
-
-  <p>
-    This privacy policy can be expanded later.
-  </p>
-
 </section>
 
 </main>
 
 <footer>
-  QiblaFinder · Simple direction to the Kaaba
+  QiblaFinder · Accurate direction to the Kaaba
 </footer>
 
 <script src="qibla.js"></script>
